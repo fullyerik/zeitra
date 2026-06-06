@@ -1,0 +1,18 @@
+{
+  "projects": {
+    "default": "zeitra-csbe"
+  },
+  "targets": {
+    "zeitra-csbe": {
+      "hosting": {
+        "main": [
+          "zeitra"
+        ],
+        "legacy": [
+          "zeitra-csbe"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

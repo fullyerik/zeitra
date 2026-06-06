@@ -1,0 +1,65 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ====== HELPER FUNCTIONS ======
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwnUser(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Admin = bestimmte Email-Adressen
+    // WICHTIG: Hier deine echte Admin-Email eintragen!
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'erikspinnler84@gmail.com'
+        // Weitere Admin-Emails hier mit || hinzufügen
+      );
+    }
+
+    // ====== USERS COLLECTION ======
+    match /users/{uid} {
+      // Lesen: jeder eingeloggte User darf Profile sehen
+      //        (für Suche, Leaderboard, Profil-Popup)
+      allow read: if isSignedIn();
+
+      // Erstellen: nur eigenes Profil beim Registrieren
+      allow create: if isOwnUser(uid);
+
+      // Schreiben:
+      //   - Owner kann sein eigenes Profil ändern
+      //   - Admin kann jedes Profil ändern (für Admin-Panel)
+      allow update: if isOwnUser(uid) || isAdmin();
+
+      // Löschen: nur Admin
+      allow delete: if isAdmin();
+    }
+
+    // ====== LEADERBOARD COLLECTION ======
+    match /leaderboard/{entryId} {
+      // Lesen: jeder eingeloggte User (für Anzeige)
+      allow read: if isSignedIn();
+
+      // Erstellen: nur mit eigener userId
+      //   → kein Spieler kann Scores für andere submitten
+      allow create: if isSignedIn()
+                    && request.resource.data.userId == request.auth.uid;
+
+      // Updaten: nur eigene Einträge
+      allow update: if isSignedIn()
+                    && resource.data.userId == request.auth.uid;
+
+      // Löschen: nur Admin (für Cleanup-Tool)
+      allow delete: if isAdmin();
+    }
+
+    // Alles andere blockieren
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

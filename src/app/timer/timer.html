@@ -1,0 +1,1002 @@
+<div class="zeitra-app">
+
+  <!-- COIN REWARD TOAST -->
+  <div class="coin-reward" *ngIf="showCoinReward">
+    <span class="coin-reward-icon">🪙</span>
+    <span class="coin-reward-amount">+{{ coinRewardAmount }}</span>
+    <span class="coin-reward-reason">{{ coinRewardReason }}</span>
+  </div>
+
+  <!-- ADMIN LOGIN -->
+  <div class="popup-overlay" *ngIf="adminLoginOpen">
+    <div class="popup admin-login-popup">
+      <button class="popup-close" (click)="adminLoginOpen = false">✕</button>
+      <div class="admin-icon">🔐</div>
+      <p class="popup-sub">Restricted Area</p>
+      <input id="admin-pw-input" class="zInput admin-pw-input" type="password"
+             placeholder="Passwort..."
+             [(ngModel)]="adminPwInput"
+             (keyup.enter)="checkAdminPw()" />
+      <div class="auth-error" *ngIf="adminPwError">{{ adminPwError }}</div>
+      <button class="btn admin-confirm-btn w100 mt8" (click)="checkAdminPw()">
+        Bestätigen
+      </button>
+    </div>
+  </div>
+
+  <!-- ADMIN PANEL -->
+  <div class="popup-overlay" *ngIf="adminPanelOpen">
+    <div class="popup admin-panel-popup">
+      <button class="popup-close" (click)="closeAdmin()">✕</button>
+      <div class="admin-header">
+        <span class="admin-icon-small">🔧</span>
+        <span class="admin-title">Admin Panel</span>
+        <span class="admin-kbd">Strg+F zum Schließen</span>
+      </div>
+
+      <div class="admin-tabs">
+        <button class="admin-tab" [class.active]="adminTab === 'self'" (click)="adminTab = 'self'">
+          👤 Eigene
+        </button>
+        <button class="admin-tab" [class.active]="adminTab === 'users'" (click)="adminTab = 'users'; loadAdminUsers()">
+          👥 User
+        </button>
+        <button class="admin-tab" [class.active]="adminTab === 'cleanup'" (click)="adminTab = 'cleanup'">
+          🧹 Cleanup
+        </button>
+      </div>
+
+      <div class="admin-msg" *ngIf="adminMsg">{{ adminMsg }}</div>
+
+      <!-- TAB: SELF -->
+      <div class="admin-body" *ngIf="adminTab === 'self'">
+        <div class="admin-section">
+          <label class="field-label">Aktuelle Münzen</label>
+          <div class="admin-row">
+            <input class="zInput" type="number" [(ngModel)]="adminCoinsInput" />
+            <button class="btn btn-start" (click)="adminSetOwnCoins()">Setzen</button>
+          </div>
+          <div class="admin-quick-row">
+            <button class="btn btn-reset small" (click)="adminAddOwnCoins(100)">+100</button>
+            <button class="btn btn-reset small" (click)="adminAddOwnCoins(500)">+500</button>
+            <button class="btn btn-reset small" (click)="adminAddOwnCoins(1000)">+1000</button>
+            <button class="btn btn-reset small" (click)="adminAddOwnCoins(10000)">+10000</button>
+            <button class="btn admin-danger-btn small" (click)="adminAddOwnCoins(-coins)">Auf 0</button>
+          </div>
+        </div>
+
+        <div class="admin-section">
+          <label class="field-label">Items</label>
+          <button class="btn btn-start w100" (click)="adminUnlockAllItems()">
+            🔓 Alle Borders + Glows freischalten
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB: USERS -->
+      <div class="admin-body" *ngIf="adminTab === 'users'">
+        <div class="admin-section" *ngIf="!adminTargetUser">
+          <div class="admin-row">
+            <label class="field-label">Top User (nach Münzen)</label>
+            <button class="btn ghost small" (click)="loadAdminUsers()">↻</button>
+          </div>
+          <div class="admin-user-list">
+            <div class="lb-loading" *ngIf="adminUsersLoading">Lädt...</div>
+            <button *ngFor="let u of adminUsers" class="admin-user-row" (click)="selectAdminUser(u)">
+              <div class="avatar small" [class]="(u['avatarBorder'] || 'border-blue') + ' ' + (u['avatarGlow'] || '')">
+                <img *ngIf="u['avatarUrl']" [src]="u['avatarUrl']" class="avatar-img" />
+                <span *ngIf="!u['avatarUrl']">{{ getInitials(u['username']) }}</span>
+              </div>
+              <span class="admin-user-name">{{ u['username'] }}</span>
+              <span class="admin-user-coins">🪙 {{ u['coins'] ?? 0 }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="admin-section" *ngIf="adminTargetUser">
+          <button class="btn ghost small" (click)="adminTargetUser = null">← Zurück zur Liste</button>
+          <div class="admin-target-header">
+            <div class="avatar" [class]="(adminTargetUser['avatarBorder'] || 'border-blue') + ' ' + (adminTargetUser['avatarGlow'] || '')">
+              <img *ngIf="adminTargetUser['avatarUrl']" [src]="adminTargetUser['avatarUrl']" class="avatar-img" />
+              <span *ngIf="!adminTargetUser['avatarUrl']">{{ getInitials(adminTargetUser['username']) }}</span>
+            </div>
+            <div>
+              <div class="admin-target-name">{{ adminTargetUser['username'] }}</div>
+              <div class="admin-target-uid">{{ adminTargetUser['email'] }}</div>
+            </div>
+          </div>
+          <label class="field-label mt8">Münzen</label>
+          <div class="admin-row">
+            <input class="zInput" type="number" [(ngModel)]="adminTargetCoinsInput" />
+            <button class="btn btn-start" (click)="adminSetTargetCoins()">Setzen</button>
+          </div>
+          <div class="admin-quick-row">
+            <button class="btn btn-reset small" (click)="adminGiveCoinsToTarget(100)">+100</button>
+            <button class="btn btn-reset small" (click)="adminGiveCoinsToTarget(500)">+500</button>
+            <button class="btn btn-reset small" (click)="adminGiveCoinsToTarget(1000)">+1000</button>
+            <button class="btn admin-danger-btn small" (click)="adminGiveCoinsToTarget(-100)">−100</button>
+            <button class="btn admin-danger-btn small" (click)="adminGiveCoinsToTarget(-500)">−500</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: CLEANUP -->
+      <div class="admin-body" *ngIf="adminTab === 'cleanup'">
+        <div class="admin-section">
+          <label class="field-label">Leaderboard-Einträge löschen</label>
+          <p class="admin-warn">⚠️ Löscht alle Einträge für gewähltes Game + Level. Nicht rückgängig machbar.</p>
+          <label class="field-label mt8">Game</label>
+          <select class="zInput" [(ngModel)]="adminCleanupGame">
+            <option *ngFor="let g of leaderboardGames" [value]="g.id">{{ g.label }}</option>
+          </select>
+          <label class="field-label mt8">Level</label>
+          <input class="zInput" type="number" [(ngModel)]="adminCleanupLevel" />
+          <button class="btn w100 mt8"
+                  [class.btn-reset]="!adminCleanupConfirm"
+                  [class.admin-danger-btn]="adminCleanupConfirm"
+                  (click)="adminDeleteLeaderboard()">
+            {{ adminCleanupConfirm ? '⚠️ WIRKLICH LÖSCHEN?' : '🗑 Einträge löschen' }}
+          </button>
+          <button *ngIf="adminCleanupConfirm" class="btn ghost w100 mt8" (click)="adminCleanupConfirm = false">
+            Abbrechen
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- WELCOME POPUP -->
+  <div class="popup-overlay" *ngIf="showWelcomePopup">
+    <div class="popup">
+      <div class="popup-logo">zeitra</div>
+      <div *ngIf="!showLoginForm && !showRegisterForm">
+        <p class="popup-sub">Willkommen! Bitte wähle eine Option:</p>
+        <button class="btn btn-start w100" (click)="openLogin()">🔑 Einloggen</button>
+        <button class="btn btn-reset w100 mt8" (click)="openRegister()">📝 Registrieren</button>
+        <div class="popup-divider">— oder —</div>
+        <button class="btn ghost w100" (click)="playAsGuest()">Als Gast fortfahren</button>
+      </div>
+      <div *ngIf="showLoginForm">
+        <p class="popup-sub">Einloggen</p>
+        <input class="zInput" type="email" placeholder="E-Mail" [(ngModel)]="authEmail" />
+        <input class="zInput mt8" type="password" placeholder="Passwort" [(ngModel)]="authPassword" />
+        <div class="auth-error" *ngIf="authError">{{ authError }}</div>
+        <button class="btn btn-start w100 mt8" (click)="login()" [disabled]="authLoading">
+          {{ authLoading ? 'Lädt...' : '🔑 Einloggen' }}
+        </button>
+        <button class="btn ghost w100 mt8" (click)="closeAuth()">← Zurück</button>
+      </div>
+      <div *ngIf="showRegisterForm">
+        <p class="popup-sub">Konto erstellen</p>
+        <input class="zInput" type="text" placeholder="Benutzername" [(ngModel)]="authUsername" />
+        <input class="zInput mt8" type="email" placeholder="E-Mail" [(ngModel)]="authEmail" />
+        <input class="zInput mt8" type="password" placeholder="Passwort" [(ngModel)]="authPassword" />
+        <div class="auth-error" *ngIf="authError">{{ authError }}</div>
+        <button class="btn btn-start w100 mt8" (click)="register()" [disabled]="authLoading">
+          {{ authLoading ? 'Lädt...' : '📝 Registrieren' }}
+        </button>
+        <button class="btn ghost w100 mt8" (click)="closeAuth()">← Zurück</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACCOUNT POPUP -->
+  <div class="popup-overlay" *ngIf="showAccountPopup">
+    <div class="popup account-popup">
+      <button class="popup-close" (click)="showAccountPopup = false">✕</button>
+      <div class="account-layout">
+
+        <!-- LINKS: Vorschau -->
+        <div class="account-preview">
+          <div class="preview-banner"
+               [style.backgroundImage]="bannerUrl ? 'url(' + bannerUrl + ')' : ''">
+            <label class="banner-upload-btn-small">
+              {{ bannerUploading ? '⏳' : '🖼' }}
+              <input type="file" accept="image/*" (change)="onBannerFileChange($event)" style="display:none" />
+            </label>
+          </div>
+          <div class="preview-avatar-row">
+            <div class="avatar-wrap">
+              <div class="avatar large" [class]="avatarBorderClass + ' ' + avatarGlowClass">
+                <img *ngIf="avatarUrl" [src]="avatarUrl" alt="Avatar" class="avatar-img" />
+                <span *ngIf="!avatarUrl">{{ userInitials }}</span>
+              </div>
+              <label class="avatar-upload-btn">
+                {{ avatarUploading ? '⏳' : '📷' }}
+                <input type="file" accept="image/*" (change)="onAvatarFileChange($event)" style="display:none" />
+              </label>
+            </div>
+            <div class="preview-name-col">
+              <span class="profile-display-name" [class]="usernameStyleClass(editSelectedUsernameStyle)">{{ displayName }}</span>
+              <span class="profile-title title-tier-{{ getTitleTier(editSelectedTitle) }}" *ngIf="editSelectedTitle !== 'none'">
+                {{ getTitleLabel(editSelectedTitle) }}
+              </span>
+              <span class="profile-email">{{ currentUser?.email }}</span>
+            </div>
+          </div>
+          <div class="preview-bio" *ngIf="editBio">
+            <span class="field-label">Bio</span>
+            <p class="bio-text">{{ editBio }}</p>
+          </div>
+          <div class="preview-links" *ngIf="editLinks[0].url || editLinks[1].url || editLinks[2].url">
+            <span class="field-label">Links</span>
+            <div class="profile-links">
+              <ng-container *ngFor="let link of editLinks">
+                <span class="profile-link-preview" *ngIf="link.url">
+                  🔗 {{ link.label || link.url }}
+                </span>
+              </ng-container>
+            </div>
+          </div>
+          <div class="preview-deco-row">
+            <div class="avatar small" [class]="editAvatarBorder + ' ' + editAvatarGlow"
+                 style="background:linear-gradient(135deg,#4a9eff,#7b4fff)">
+              {{ userInitials }}
+            </div>
+            <span style="font-size:12px;color:#8888aa;margin-left:8px">Vorschau Dekoration</span>
+          </div>
+        </div>
+
+        <!-- RECHTS: Einstellungen -->
+        <div class="account-settings-col">
+          <label class="field-label">Benutzername</label>
+          <input class="zInput" type="text" [(ngModel)]="editUsername" placeholder="Benutzername" />
+
+          <label class="field-label mt8">Bio</label>
+          <textarea class="zInput zTextarea" [(ngModel)]="editBio" placeholder="Kurze Bio..." rows="4"></textarea>
+
+          <label class="field-label mt8">
+            <input type="checkbox" [(ngModel)]="editShowEmail" style="margin-right:6px" />
+            E-Mail im Profil anzeigen
+          </label>
+
+          <label class="field-label mt8">Links (max. 3)</label>
+          <div class="links-edit" *ngFor="let link of editLinks; let i = index">
+            <input class="zInput link-label-input" type="text"
+                   placeholder="Label (z.B. YouTube)"
+                   [(ngModel)]="editLinks[i].label" />
+            <input class="zInput mt4" type="url"
+                   placeholder="https://..."
+                   [(ngModel)]="editLinks[i].url" />
+          </div>
+
+          <label class="field-label mt8">Avatar-Rahmen</label>
+          <div class="deco-grid">
+            <button *ngFor="let b of avatarBorders" class="deco-btn"
+                    [class.selected]="editAvatarBorder === b.id"
+                    [class.locked]="!isOwnedBorder(b.id)"
+                    [disabled]="!isOwnedBorder(b.id)"
+                    (click)="editAvatarBorder = b.id">
+              <div class="deco-preview avatar small" [class]="b.id"></div>
+              <span>{{ b.label }}</span>
+              <span class="deco-lock" *ngIf="!isOwnedBorder(b.id)">🔒</span>
+            </button>
+          </div>
+
+          <label class="field-label mt8">Avatar-Glow</label>
+          <div class="deco-grid">
+            <button *ngFor="let g of avatarGlows" class="deco-btn"
+                    [class.selected]="editAvatarGlow === g.id"
+                    [class.locked]="!isOwnedGlow(g.id)"
+                    [disabled]="!isOwnedGlow(g.id)"
+                    (click)="editAvatarGlow = g.id">
+              <div class="deco-preview avatar small" [class]="g.id" style="background:#4a9eff"></div>
+              <span>{{ g.label }}</span>
+              <span class="deco-lock" *ngIf="!isOwnedGlow(g.id)">🔒</span>
+            </button>
+          </div>
+
+          <label class="field-label mt8">Titel</label>
+          <div class="deco-grid title-grid">
+            <button *ngFor="let t of availableTitles" class="deco-btn title-deco-btn"
+                    [class.selected]="editSelectedTitle === t.id"
+                    [class.locked]="!isOwnedTitle(t.id)"
+                    [disabled]="!isOwnedTitle(t.id)"
+                    (click)="editSelectedTitle = t.id">
+              <span class="title-preview-mini title-tier-{{ t.tier }}">{{ t.label }}</span>
+              <span class="deco-lock" *ngIf="!isOwnedTitle(t.id)">🔒</span>
+            </button>
+          </div>
+
+          <label class="field-label mt8">Username-Style</label>
+          <div class="deco-grid">
+            <button *ngFor="let s of availableUsernameStyles" class="deco-btn"
+                    [class.selected]="editSelectedUsernameStyle === s.id"
+                    [class.locked]="!isOwnedUsernameStyle(s.id)"
+                    [disabled]="!isOwnedUsernameStyle(s.id)"
+                    (click)="editSelectedUsernameStyle = s.id">
+              <span class="uname-preview-mini" [class]="usernameStyleClass(s.id)">{{ s.label }}</span>
+              <span class="deco-lock" *ngIf="!isOwnedUsernameStyle(s.id)">🔒</span>
+            </button>
+          </div>
+
+          <button class="btn ghost w100 mt8" (click)="showAccountPopup = false; navigate('shop')">🛒 Mehr im Shop</button>
+
+          <div class="profile-save-msg" *ngIf="profileSaveMsg">{{ profileSaveMsg }}</div>
+          <button class="btn btn-start w100 mt8" (click)="saveProfile()" [disabled]="profileSaving">
+            {{ profileSaving ? 'Speichert...' : '💾 Speichern' }}
+          </button>
+          <button class="btn ghost w100 mt8 danger" (click)="logout()">🚪 Ausloggen</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW PROFILE POPUP -->
+  <div class="popup-overlay" *ngIf="showProfilePopup && viewingProfile">
+    <div class="popup wide-popup">
+      <button class="popup-close" (click)="showProfilePopup = false">✕</button>
+      <div class="profile-banner"
+           [style.backgroundImage]="viewingProfile['bannerUrl'] ? 'url(' + viewingProfile['bannerUrl'] + ')' : ''">
+      </div>
+      <div class="profile-avatar-row">
+        <div class="avatar large"
+             [class]="(viewingProfile['avatarBorder'] || 'border-blue') + ' ' + (viewingProfile['avatarGlow'] || '')">
+          <img *ngIf="viewingProfile['avatarUrl']" [src]="viewingProfile['avatarUrl']" class="avatar-img" />
+          <span *ngIf="!viewingProfile['avatarUrl']">{{ getInitials(viewingProfile['username']) }}</span>
+        </div>
+        <div class="profile-name-col">
+          <span class="profile-display-name" [class]="usernameStyleClass(viewingProfile['selectedUsernameStyle'])">{{ viewingProfile['username'] }}</span>
+          <span class="profile-title title-tier-{{ getTitleTier(viewingProfile['selectedTitle']) }}" *ngIf="viewingProfile['selectedTitle'] && viewingProfile['selectedTitle'] !== 'none'">
+            {{ getTitleLabel(viewingProfile['selectedTitle']) }}
+          </span>
+          <span class="profile-email" *ngIf="viewingProfile['showEmail']">{{ viewingProfile['email'] }}</span>
+          <span class="profile-email" *ngIf="!viewingProfile['showEmail']" style="color:#444466">E-Mail versteckt</span>
+        </div>
+      </div>
+      <div class="profile-fields">
+        <div class="view-bio" *ngIf="viewingProfile['bio']">
+          <span class="field-label">Bio</span>
+          <p class="bio-text" [innerHTML]="formatBio(viewingProfile['bio'])"></p>
+        </div>
+        <div class="view-bio" *ngIf="!viewingProfile['bio']">
+          <p class="bio-text" style="color:#444466">Keine Bio vorhanden.</p>
+        </div>
+        <div class="view-links" *ngIf="viewingProfile['links']?.length > 0">
+          <span class="field-label">Links</span>
+          <div class="profile-links">
+            <button *ngFor="let link of viewingProfile['links']"
+                    class="profile-link-btn"
+                    (click)="openLink(link.url)">
+              🔗 {{ link.label || link.url }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <img src="assets/zeitra-logo.png" alt="Zeitra" class="logo-img" />
+      <span class="logo-text">Zeitra</span>
+    </div>
+
+    <div class="sidebar-scroll">
+    <button class="nav-item" [class.active]="activePage === 'home'" (click)="navigate('home')">
+      <i class="nav-icon">🏠</i> Home
+    </button>
+
+    <div class="nav-section">Timer</div>
+    <button class="nav-item" [class.active]="activePage === 'stopwatch'" (click)="navigate('stopwatch')">
+      <i class="nav-icon">⏱</i> Stopwatch
+    </button>
+    <button class="nav-item" [class.active]="activePage === 'countdown'" (click)="navigate('countdown')">
+      <i class="nav-icon">⏳</i> Countdown
+    </button>
+
+    <div class="nav-section">Games</div>
+    <button class="nav-item games-toggle" (click)="gamesOpen = !gamesOpen">
+      <i class="nav-icon">🎮</i> Games
+      <span class="chevron" [class.open]="gamesOpen">›</span>
+    </button>
+    <div class="games-submenu" [class.open]="gamesOpen">
+      <button class="nav-item sub" [class.active]="activePage === 'zeitgefuehl'" (click)="navigate('zeitgefuehl')">
+        <i class="nav-icon">🎯</i> Zeitgefühl
+      </button>
+      <button class="nav-item sub" [class.active]="activePage === 'reaktion'" (click)="navigate('reaktion')">
+        <i class="nav-icon">⚡</i> Reaktionstest
+      </button>
+      <button class="nav-item sub" [class.active]="activePage === 'stopclock'" (click)="navigate('stopclock')">
+        <i class="nav-icon">🛑</i> Stop the Clock
+      </button>
+      <button class="nav-item sub" [class.active]="activePage === 'bpm'" (click)="navigate('bpm')">
+        <i class="nav-icon">🥁</i> BPM Tap
+      </button>
+      <button class="nav-item sub" [class.active]="activePage === 'blindcounter'" (click)="navigate('blindcounter')">
+        <i class="nav-icon">🔢</i> Blind Counter
+      </button>
+      <button class="nav-item sub" [class.active]="activePage === 'sequence'" (click)="navigate('sequence')">
+        <i class="nav-icon">🧠</i> Sequence
+      </button>
+    </div>
+
+    <div class="nav-section">Community</div>
+    <button class="nav-item" [class.active]="activePage === 'leaderboard'"
+            (click)="navigate('leaderboard')">
+      <i class="nav-icon">🏆</i> Leaderboard
+    </button>
+    <button class="nav-item" [class.active]="activePage === 'profile'" (click)="navigate('profile')">
+      <i class="nav-icon">🔍</i> Profile
+    </button>
+    <button class="nav-item" [class.active]="activePage === 'shop'" (click)="navigate('shop')">
+      <i class="nav-icon">🛒</i> Shop
+    </button>
+    </div>
+
+    <div class="sidebar-bottom">
+      <div class="coins-display" *ngIf="currentUser">
+        <span class="coins-icon">🪙</span>
+        <span class="coins-value">{{ coins }}</span>
+        <span class="coins-label">Münzen</span>
+      </div>
+      <button class="user-btn" (click)="currentUser ? showAccountPopup = true : showWelcomePopup = true">
+        <div class="avatar" [class]="avatarBorderClass + ' ' + avatarGlowClass" [class.guest]="!currentUser">
+          <img *ngIf="avatarUrl && currentUser" [src]="avatarUrl" alt="Avatar" class="avatar-img" />
+          <span *ngIf="!avatarUrl || !currentUser">{{ currentUser ? userInitials : '?' }}</span>
+        </div>
+        <div class="user-info">
+          <span class="user-name" [class]="currentUser ? usernameStyleClass(selectedUsernameStyle) : ''">{{ currentUser ? displayName : 'Gast' }}</span>
+          <span class="user-sub title-tier-{{ getTitleTier(selectedTitle) }}" *ngIf="currentUser && selectedTitle !== 'none'">
+            {{ getTitleLabel(selectedTitle) }}
+          </span>
+          <span class="user-sub" *ngIf="!currentUser || selectedTitle === 'none'">{{ currentUser ? 'Account' : 'Einloggen' }}</span>
+        </div>
+      </button>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- HOME -->
+    <div class="page" *ngIf="activePage === 'home'">
+      <div class="page-header">🏠 Home</div>
+      <div class="page-content home-content">
+        <div class="home-welcome">
+          <div class="home-avatar" *ngIf="currentUser">
+            <div class="avatar large" [class]="avatarBorderClass + ' ' + avatarGlowClass">
+              <img *ngIf="avatarUrl" [src]="avatarUrl" class="avatar-img" />
+              <span *ngIf="!avatarUrl">{{ userInitials }}</span>
+            </div>
+          </div>
+          <h1 class="home-title">
+            <span *ngIf="!currentUser">Willkommen bei Zeitra!</span>
+            <span *ngIf="currentUser">
+              Willkommen, <span [class]="usernameStyleClass(selectedUsernameStyle)">{{ displayName }}</span>!
+            </span>
+          </h1>
+          <span class="home-title-tag title-tier-{{ getTitleTier(selectedTitle) }}"
+                *ngIf="currentUser && selectedTitle && selectedTitle !== 'none' && getTitleLabel(selectedTitle)">
+            {{ getTitleLabel(selectedTitle) }}
+          </span>
+          <p class="home-sub">Deine Zeit-App mit Timer, Games und mehr.</p>
+        </div>
+        <div class="home-grid">
+          <div class="home-card" (click)="navigate('stopwatch')">
+            <div class="home-card-icon">⏱</div>
+            <div class="home-card-title">Stopwatch</div>
+            <div class="home-card-desc">Messe deine Zeit präzise</div>
+          </div>
+          <div class="home-card" (click)="navigate('countdown')">
+            <div class="home-card-icon">⏳</div>
+            <div class="home-card-title">Countdown</div>
+            <div class="home-card-desc">Zähle rückwärts</div>
+          </div>
+          <div class="home-card highlight" (click)="navigate('zeitgefuehl')">
+            <div class="home-card-icon">🎯</div>
+            <div class="home-card-title">Zeitgefühl</div>
+            <div class="home-card-desc">Teste dein Zeitgefühl in 10 Levels</div>
+          </div>
+          <div class="home-card" (click)="navigate('reaktion')">
+            <div class="home-card-icon">⚡</div>
+            <div class="home-card-title">Reaktionstest</div>
+            <div class="home-card-desc">Wie schnell bist du?</div>
+          </div>
+          <div class="home-card" (click)="navigate('stopclock')">
+            <div class="home-card-icon">🛑</div>
+            <div class="home-card-title">Stop the Clock</div>
+            <div class="home-card-desc">Stoppe bei genau dem Ziel</div>
+          </div>
+          <div class="home-card" (click)="navigate('bpm')">
+            <div class="home-card-icon">🥁</div>
+            <div class="home-card-title">BPM Tap</div>
+            <div class="home-card-desc">Halte den Takt</div>
+          </div>
+          <div class="home-card" (click)="navigate('blindcounter')">
+            <div class="home-card-icon">🔢</div>
+            <div class="home-card-title">Blind Counter</div>
+            <div class="home-card-desc">60 Sekunden ohne Uhr</div>
+          </div>
+          <div class="home-card" (click)="navigate('sequence')">
+            <div class="home-card-icon">🧠</div>
+            <div class="home-card-title">Sequence</div>
+            <div class="home-card-desc">Merke dir die Reihenfolge</div>
+          </div>
+          <div class="home-card" (click)="navigate('leaderboard')">
+            <div class="home-card-icon">🏆</div>
+            <div class="home-card-title">Leaderboard</div>
+            <div class="home-card-desc">Vergleiche dich mit anderen</div>
+          </div>
+          <div class="home-card highlight" (click)="navigate('shop')">
+            <div class="home-card-icon">🛒</div>
+            <div class="home-card-title">Shop</div>
+            <div class="home-card-desc">Münzen ausgeben für Deko</div>
+          </div>
+          <div class="home-card" (click)="navigate('profile')">
+            <div class="home-card-icon">🔍</div>
+            <div class="home-card-title">Profile</div>
+            <div class="home-card-desc">Finde andere Spieler</div>
+          </div>
+          <div class="home-card" (click)="currentUser ? showAccountPopup = true : showWelcomePopup = true">
+            <div class="home-card-icon">👤</div>
+            <div class="home-card-title">{{ currentUser ? 'Mein Account' : 'Einloggen' }}</div>
+            <div class="home-card-desc">{{ currentUser ? 'Profil anpassen' : 'Jetzt registrieren' }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STOPWATCH -->
+    <div class="page" *ngIf="activePage === 'stopwatch'">
+      <div class="page-header">⏱ Stopwatch</div>
+      <div class="page-content">
+        <div class="time-display" [class.running]="swRunning">{{ swFormatted }}</div>
+        <div class="controls">
+          <button class="btn btn-start" (click)="swStart()" [disabled]="swRunning">▶ Start</button>
+          <button class="btn btn-pause" (click)="swPause()" [disabled]="!swRunning">⏸ Pause</button>
+          <button class="btn btn-reset" (click)="swReset()">↺ Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- COUNTDOWN -->
+    <div class="page" *ngIf="activePage === 'countdown'">
+      <div class="page-header">⏳ Countdown</div>
+      <div class="page-content">
+        <div class="time-display" [class.running]="cdRunning" [class.finished]="cdFinished">{{ cdFormatted }}</div>
+        <div class="input-row">
+          <label>Sekunden:</label>
+          <input type="number" [value]="cdInput" (change)="onInputChange($any($event.target).value)" min="1" max="3600" [disabled]="cdRunning" />
+        </div>
+        <div class="controls">
+          <button class="btn btn-start" (click)="cdStart()" [disabled]="cdRunning || cdRemaining === 0">▶ Start</button>
+          <button class="btn btn-pause" (click)="cdPause()" [disabled]="!cdRunning">⏸ Pause</button>
+          <button class="btn btn-reset" (click)="cdReset()">↺ Reset</button>
+        </div>
+        <div class="finished-msg" *ngIf="cdFinished">⏰ Zeit abgelaufen!</div>
+      </div>
+    </div>
+
+    <!-- ZEITGEFÜHL -->
+    <div class="page" *ngIf="activePage === 'zeitgefuehl'">
+      <div class="page-header">🎯 Zeitgefühl — Level {{ zgLevel }}</div>
+      <div class="page-content">
+        <div class="level-select" *ngIf="zgPhase === 'select'">
+          <p class="zg-desc">Stoppe die Uhr so nah wie möglich am Ziel!</p>
+          <div class="level-grid">
+            <button *ngFor="let l of zgLevels" class="level-btn"
+                    [class.active]="zgLevel === l.level"
+                    [class.completed]="zgBestScores[l.level] !== undefined"
+                    (click)="zgSelectLevel(l)">
+              <span class="level-num">{{ l.level }}</span>
+              <span class="level-target">{{ l.target }}s</span>
+              <span class="level-best" *ngIf="zgBestScores[l.level] !== undefined">
+                ±{{ zgBestScores[l.level] | number:'1.2-2' }}s
+              </span>
+            </button>
+          </div>
+        </div>
+        <div class="zg-game" *ngIf="zgPhase === 'playing'">
+          <p class="zg-desc">Stoppe bei genau <strong>{{ zgTargetSeconds }}s</strong>!</p>
+          <div class="time-display running">{{ zgElapsedFormatted }}</div>
+          <button class="btn btn-start big-btn" (click)="zgStop()">⏹ Stopp!</button>
+        </div>
+        <div class="zg-result" *ngIf="zgPhase === 'result'">
+          <div class="result-icon">{{ zgResultIcon }}</div>
+          <div class="result-text">{{ zgResultText }}</div>
+          <div class="result-detail">Ziel: <strong>{{ zgTargetSeconds }}s</strong> — Du: <strong>{{ zgStoppedAt | number:'1.2-2' }}s</strong></div>
+          <div class="result-diff" [class.good]="zgDiff < 0.5" [class.okay]="zgDiff >= 0.5 && zgDiff < 1.5">
+            Abweichung: ±{{ zgDiff | number:'1.2-2' }}s
+          </div>
+          <div class="guest-note" *ngIf="!currentUser">💡 Logge dich ein um deinen Score zu speichern!</div>
+          <div class="result-buttons">
+            <button class="btn btn-start" (click)="zgReplay()">↺ Nochmal</button>
+            <button class="btn btn-reset" (click)="zgPhase = 'select'">← Level wählen</button>
+            <button class="btn btn-reset" (click)="navigate('leaderboard'); loadLeaderboard('zeitgefuehl', zgLevel)">🏆 Rangliste</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEADERBOARD -->
+    <div class="page" *ngIf="activePage === 'leaderboard'">
+      <div class="page-header">🏆 Leaderboard</div>
+      <div class="page-content">
+
+        <div class="lb-game-tabs">
+          <button *ngFor="let g of leaderboardGames" class="lb-game-tab"
+                  [class.active]="leaderboardGame === g.id"
+                  (click)="selectLeaderboardGame(g.id)">
+            {{ g.label }}
+          </button>
+        </div>
+
+        <div class="lb-levels" *ngIf="leaderboardGameDef && leaderboardGameDef.levels.length > 1">
+          <button *ngFor="let l of leaderboardGameDef.levels" class="level-btn small"
+                  [class.active]="leaderboardLevel === l.level"
+                  (click)="loadLeaderboard(leaderboardGame, l.level)">
+            {{ l.label }}
+          </button>
+        </div>
+
+        <div class="lb-loading" *ngIf="leaderboardLoading">Lädt...</div>
+        <div class="lb-empty" *ngIf="!leaderboardLoading && leaderboardData.length === 0">
+          Noch keine Einträge — sei der Erste!
+        </div>
+        <div class="lb-table" *ngIf="!leaderboardLoading && leaderboardData.length > 0">
+          <div class="lb-row header">
+            <span>#</span><span>Spieler</span><span>Score</span>
+          </div>
+          <div class="lb-row" *ngFor="let entry of leaderboardData; let i = index"
+               [class.gold]="i===0" [class.silver]="i===1" [class.bronze]="i===2">
+            <span class="lb-rank">{{ i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1 }}</span>
+            <span class="lb-name-col">
+              <span class="lb-name" [class]="usernameStyleClass(entry['selectedUsernameStyle'])">{{ entry['username'] }}</span>
+              <span class="lb-title title-tier-{{ getTitleTier(entry['selectedTitle']) }}" *ngIf="entry['selectedTitle'] && entry['selectedTitle'] !== 'none'">
+                {{ getTitleLabel(entry['selectedTitle']) }}
+              </span>
+            </span>
+            <span class="lb-score">{{ formatScore(entry['diff']) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFILE SEARCH -->
+    <div class="page" *ngIf="activePage === 'profile'">
+      <div class="page-header">🔍 Profile suchen</div>
+      <div class="page-content">
+        <div class="search-bar">
+          <input class="zInput search-input" type="text" placeholder="Benutzername suchen..."
+                 [(ngModel)]="searchQuery" (keyup.enter)="searchUsers()" />
+          <button class="btn btn-start" (click)="searchUsers()" [disabled]="searchLoading">
+            {{ searchLoading ? '⏳' : '🔍 Suchen' }}
+          </button>
+        </div>
+        <div class="search-results" *ngIf="searchResults.length > 0">
+          <div class="search-result-item" *ngFor="let u of searchResults" (click)="viewProfile(u)">
+            <div class="avatar" [class]="(u['avatarBorder'] || 'border-blue') + ' ' + (u['avatarGlow'] || '')">
+              <img *ngIf="u['avatarUrl']" [src]="u['avatarUrl']" class="avatar-img" />
+              <span *ngIf="!u['avatarUrl']">{{ getInitials(u['username']) }}</span>
+            </div>
+            <div class="search-result-info">
+              <span class="search-result-name">{{ u['username'] }}</span>
+              <span class="search-result-bio">{{ u['bio'] || 'Keine Bio' }}</span>
+            </div>
+            <span class="search-result-arrow">›</span>
+          </div>
+        </div>
+        <div class="lb-empty" *ngIf="searchResults.length === 0 && searchQuery && !searchLoading">
+          Keine Spieler gefunden.
+        </div>
+        <div class="lb-empty" *ngIf="!searchQuery">
+          Gib einen Benutzernamen ein um zu suchen.
+        </div>
+      </div>
+    </div>
+
+    <!-- REAKTIONSTEST -->
+    <div class="page" *ngIf="activePage === 'reaktion'">
+      <div class="page-header">⚡ Reaktionstest</div>
+      <div class="page-content">
+        <p class="zg-desc" *ngIf="rtPhase === 'idle'">Klicke auf den Bereich, sobald er <strong style="color:#4bff9a">grün</strong> wird!</p>
+        <p class="zg-desc" *ngIf="rtPhase === 'waiting'">Warte... <strong>nicht zu früh klicken!</strong></p>
+        <p class="zg-desc" *ngIf="rtPhase === 'go'">JETZT KLICKEN!</p>
+        <p class="zg-desc" *ngIf="rtPhase === 'foul'">Zu früh! Versuch's nochmal.</p>
+        <p class="zg-desc" *ngIf="rtPhase === 'result'">Deine Reaktionszeit:</p>
+
+        <div class="rt-board"
+             [class.rt-idle]="rtPhase === 'idle' || rtPhase === 'result'"
+             [class.rt-waiting]="rtPhase === 'waiting'"
+             [class.rt-go]="rtPhase === 'go'"
+             [class.rt-foul]="rtPhase === 'foul'"
+             (click)="rtClick()">
+          <div class="rt-text" *ngIf="rtPhase === 'idle'">▶ Start</div>
+          <div class="rt-text" *ngIf="rtPhase === 'waiting'">⏳</div>
+          <div class="rt-text" *ngIf="rtPhase === 'go'">⚡</div>
+          <div class="rt-text" *ngIf="rtPhase === 'foul'">❌</div>
+          <div class="rt-text rt-result" *ngIf="rtPhase === 'result'">{{ rtReactionMs }} ms</div>
+        </div>
+
+        <div class="rt-stats" *ngIf="rtBest > 0">
+          🏅 Beste Zeit: <strong>{{ rtBest }} ms</strong>
+        </div>
+        <div class="controls" *ngIf="rtPhase === 'result' || rtPhase === 'foul'">
+          <button class="btn btn-start" (click)="rtStart()">↺ Nochmal</button>
+          <button class="btn btn-reset" (click)="rtReset()">← Stop</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STOP THE CLOCK -->
+    <div class="page" *ngIf="activePage === 'stopclock'">
+      <div class="page-header">🛑 Stop the Clock — Level {{ scLevel }}</div>
+      <div class="page-content">
+        <div class="level-select" *ngIf="scPhase === 'select'">
+          <p class="zg-desc">Stoppe die Stopwatch bei <strong>genau</strong> dem Ziel — ab Level 3 wird die Anzeige versteckt!</p>
+          <div class="level-grid">
+            <button *ngFor="let l of scLevels" class="level-btn"
+                    [class.active]="scLevel === l.level"
+                    (click)="scSelectLevel(l)">
+              <span class="level-num">{{ l.level }}</span>
+              <span class="level-target">{{ l.target / 1000 }}s</span>
+              <span class="level-best" *ngIf="l.hideAfter > 0">blind nach {{ l.hideAfter / 1000 }}s</span>
+            </button>
+          </div>
+        </div>
+        <div class="zg-game" *ngIf="scPhase === 'playing'">
+          <p class="zg-desc">Stoppe bei <strong>{{ scTargetFormatted }}</strong></p>
+          <div class="time-display running" *ngIf="scShowDisplay">{{ scElapsedFormatted }}</div>
+          <div class="time-display running" *ngIf="!scShowDisplay" style="color:#2a2a45">— blind —</div>
+          <button class="btn btn-start big-btn" (click)="scStop()">⏹ Stopp!</button>
+        </div>
+        <div class="zg-result" *ngIf="scPhase === 'result'">
+          <div class="result-icon">{{ scDiffMs < 100 ? '🏆' : scDiffMs < 500 ? '🥇' : scDiffMs < 1500 ? '🥈' : '😅' }}</div>
+          <div class="result-text">{{ scDiffMs < 100 ? 'Perfekt!' : scDiffMs < 500 ? 'Sehr gut!' : scDiffMs < 1500 ? 'Gut!' : 'Knapp!' }}</div>
+          <div class="result-detail">Ziel: <strong>{{ scTargetFormatted }}</strong> — Du: <strong>{{ scStoppedFormatted }}</strong></div>
+          <div class="result-diff" [class.good]="scDiffMs < 300" [class.okay]="scDiffMs >= 300 && scDiffMs < 1000">
+            Abweichung: ±{{ scDiffFormatted }}
+          </div>
+          <div class="result-buttons">
+            <button class="btn btn-start" (click)="scSelectLevel(scLevels[scLevel - 1])">↺ Nochmal</button>
+            <button class="btn btn-reset" (click)="scReset()">← Level wählen</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BPM TAP -->
+    <div class="page" *ngIf="activePage === 'bpm'">
+      <div class="page-header">🥁 BPM Tap — {{ bpmTarget }} BPM</div>
+      <div class="page-content">
+        <div class="level-select" *ngIf="bpmPhase === 'select'">
+          <p class="zg-desc">Du hörst {{ bpmDemoCount }} Schläge — danach tippe {{ bpmTapsNeeded }} mal im selben Takt weiter.</p>
+          <div class="level-grid" style="grid-template-columns: repeat(4, 1fr); max-width:500px">
+            <button *ngFor="let b of bpmOptions" class="level-btn" (click)="bpmSelect(b)">
+              <span class="level-num">{{ b }}</span>
+              <span class="level-target">BPM</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="zg-game" *ngIf="bpmPhase === 'demo'">
+          <p class="zg-desc">🎧 Hör dem Takt zu... ({{ bpmDemoCount - Math.floor(bpmDemoIndex / 2) }} übrig)</p>
+          <div class="bpm-pulse" [class.beat]="bpmShowBeat"></div>
+        </div>
+
+        <div class="zg-game" *ngIf="bpmPhase === 'tap'">
+          <p class="zg-desc">Tippe weiter im selben Takt — <strong>{{ bpmTapsNeeded - bpmTapTimes.length }}</strong> übrig</p>
+          <div class="bpm-pulse" [class.beat]="bpmShowBeat" (click)="bpmTap()" style="cursor:pointer">
+            <span style="font-size:24px;color:white;font-weight:600">TAP</span>
+          </div>
+        </div>
+
+        <div class="zg-result" *ngIf="bpmPhase === 'result'">
+          <div class="result-icon">{{ bpmAvgDiffMs < 30 ? '🏆' : bpmAvgDiffMs < 80 ? '🥇' : bpmAvgDiffMs < 150 ? '🥈' : '😅' }}</div>
+          <div class="result-text">{{ bpmAvgDiffMs < 30 ? 'Maschinen-Präzision!' : bpmAvgDiffMs < 80 ? 'Super Rhythmus!' : bpmAvgDiffMs < 150 ? 'Gut!' : 'Übe noch!' }}</div>
+          <div class="result-detail">Ø Abweichung: <strong>{{ bpmAvgDiffMs | number:'1.0-0' }} ms</strong></div>
+          <div class="result-buttons">
+            <button class="btn btn-start" (click)="bpmSelect(bpmTarget)">↺ Nochmal</button>
+            <button class="btn btn-reset" (click)="bpmReset()">← BPM wählen</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLIND COUNTER -->
+    <div class="page" *ngIf="activePage === 'blindcounter'">
+      <div class="page-header">🔢 Blind Counter{{ bcPhase !== 'select' ? ' — ' + bcTarget + ' Sekunden' : '' }}</div>
+      <div class="page-content">
+        <div class="level-select" *ngIf="bcPhase === 'select'">
+          <p class="zg-desc">Wähle eine Dauer — du musst sie blind im Kopf zählen!</p>
+          <div class="level-grid" style="grid-template-columns: repeat(6, 1fr); max-width: 600px;">
+            <button *ngFor="let s of bcTargetOptions" class="level-btn"
+                    (click)="bcSelectTarget(s)">
+              <span class="level-num">{{ s }}</span>
+              <span class="level-target">Sek.</span>
+            </button>
+          </div>
+        </div>
+
+        <p class="zg-desc" *ngIf="bcPhase === 'idle'">Drücke <strong>Start</strong> und stoppe nach <strong>genau {{ bcTarget }} Sekunden</strong> — ohne Uhr!</p>
+        <p class="zg-desc" *ngIf="bcPhase === 'counting'">Zähle in deinem Kopf... drücke Stopp bei {{ bcTarget }}s!</p>
+
+        <div class="bc-display" *ngIf="bcPhase === 'idle'">⏱</div>
+        <div class="bc-display bc-counting" *ngIf="bcPhase === 'counting'">🤐</div>
+
+        <div class="controls" *ngIf="bcPhase === 'idle'">
+          <button class="btn btn-start big-btn" (click)="bcStart_()">▶ Start</button>
+          <button class="btn btn-reset" (click)="bcPhase = 'select'">← Zurück</button>
+        </div>
+        <div class="controls" *ngIf="bcPhase === 'counting'">
+          <button class="btn btn-start big-btn" (click)="bcStop()">⏹ Stopp!</button>
+        </div>
+
+        <div class="zg-result" *ngIf="bcPhase === 'result'">
+          <div class="result-icon">{{ bcDiff < 1 ? '🏆' : bcDiff < 3 ? '🥇' : bcDiff < 6 ? '🥈' : '😅' }}</div>
+          <div class="result-text">{{ bcDiff < 1 ? 'Unglaublich!' : bcDiff < 3 ? 'Sehr gut!' : bcDiff < 6 ? 'Gut!' : 'Üb noch!' }}</div>
+          <div class="result-detail">Ziel: <strong>{{ bcTarget }}s</strong> — Du: <strong>{{ bcStoppedFormatted }}</strong></div>
+          <div class="result-diff" [class.good]="bcDiff < 2" [class.okay]="bcDiff >= 2 && bcDiff < 5">
+            Abweichung: ±{{ bcDiffFormatted }}
+          </div>
+          <div class="result-buttons">
+            <button class="btn btn-start" (click)="bcSelectTarget(bcTarget); bcStart_()">↺ Nochmal</button>
+            <button class="btn btn-reset" (click)="bcPhase = 'select'">← Zeit ändern</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEQUENCE MEMORY -->
+    <div class="page" *ngIf="activePage === 'sequence'">
+      <div class="page-header">🧠 Sequence Memory — Runde {{ seqRound }}</div>
+      <div class="page-content">
+        <p class="zg-desc" *ngIf="seqPhase === 'idle'">Merke dir die Reihenfolge und klicke sie nach — jede Runde wird's länger!</p>
+        <p class="zg-desc" *ngIf="seqPhase === 'showing'">🎬 Schau gut hin...</p>
+        <p class="zg-desc" *ngIf="seqPhase === 'input'">Jetzt du — wiederhole die Sequenz!</p>
+        <p class="zg-desc" *ngIf="seqPhase === 'success'">✅ Richtig! Nächste Runde...</p>
+
+        <div class="seq-board">
+          <button *ngFor="let c of seqColors"
+                  class="seq-btn"
+                  [style.background]="c.color"
+                  [class.seq-active]="seqHighlight === c.id"
+                  [disabled]="seqPhase !== 'input'"
+                  (click)="seqInput(c.id)">
+          </button>
+        </div>
+
+        <div class="controls" *ngIf="seqPhase === 'idle'">
+          <button class="btn btn-start big-btn" (click)="seqStart()">▶ Start</button>
+        </div>
+
+        <div class="zg-result" *ngIf="seqPhase === 'fail'">
+          <div class="result-icon">{{ seqRound > 8 ? '🏆' : seqRound > 5 ? '🥇' : seqRound > 3 ? '🥈' : '😅' }}</div>
+          <div class="result-text">Game Over!</div>
+          <div class="result-detail">Du hast <strong>{{ seqRound - 1 }}</strong> {{ seqRound - 1 === 1 ? 'Runde' : 'Runden' }} geschafft.</div>
+          <div class="result-buttons">
+            <button class="btn btn-start" (click)="seqStart()">↺ Nochmal</button>
+            <button class="btn btn-reset" (click)="seqReset()">← Zurück</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SHOP -->
+    <div class="page" *ngIf="activePage === 'shop'">
+      <div class="page-header">🛒 Shop</div>
+      <div class="page-content shop-content">
+
+        <div class="shop-balance">
+          <span class="shop-balance-icon">🪙</span>
+          <span class="shop-balance-value">{{ coins }}</span>
+          <span class="shop-balance-label">Münzen</span>
+        </div>
+
+        <div class="lb-game-tabs">
+          <button class="lb-game-tab" [class.active]="shopTab === 'borders'" (click)="shopTab = 'borders'">
+            ⭕ Rahmen
+          </button>
+          <button class="lb-game-tab" [class.active]="shopTab === 'glows'" (click)="shopTab = 'glows'">
+            ✨ Glows
+          </button>
+          <button class="lb-game-tab" [class.active]="shopTab === 'titles'" (click)="shopTab = 'titles'">
+            🏆 Titel
+          </button>
+          <button class="lb-game-tab" [class.active]="shopTab === 'usernames'" (click)="shopTab = 'usernames'">
+            🎨 Username-Style
+          </button>
+        </div>
+
+        <div class="purchase-msg" *ngIf="purchaseMsg">{{ purchaseMsg }}</div>
+
+        <div class="shop-grid" *ngIf="shopTab === 'borders'">
+          <div class="shop-item" *ngFor="let b of avatarBorders"
+               [class.owned]="isOwnedBorder(b.id)"
+               [class.unaffordable]="!isOwnedBorder(b.id) && !canAfford(b.price)">
+            <div class="shop-item-preview avatar large" [class]="b.id" style="background:linear-gradient(135deg,#4a9eff,#7b4fff)">
+              {{ userInitials || '?' }}
+            </div>
+            <div class="shop-item-label">{{ b.label }}</div>
+            <div class="shop-item-status" *ngIf="isOwnedBorder(b.id)">✓ Im Besitz</div>
+            <div class="shop-item-status" *ngIf="!isOwnedBorder(b.id)">
+              <span class="shop-price">🪙 {{ b.price }}</span>
+            </div>
+            <button class="btn shop-buy-btn" *ngIf="!isOwnedBorder(b.id)"
+                    [class.btn-start]="canAfford(b.price)"
+                    [class.btn-reset]="!canAfford(b.price)"
+                    [disabled]="!canAfford(b.price) || purchasing || !currentUser"
+                    (click)="buyBorder(b)">
+              {{ purchasing ? '...' : !currentUser ? 'Einloggen' : canAfford(b.price) ? 'Kaufen' : 'Zu teuer' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="shop-grid" *ngIf="shopTab === 'glows'">
+          <div class="shop-item" *ngFor="let g of avatarGlows"
+               [class.owned]="isOwnedGlow(g.id)"
+               [class.unaffordable]="!isOwnedGlow(g.id) && !canAfford(g.price)">
+            <div class="shop-item-preview avatar large border-blue" [class]="g.id" style="background:linear-gradient(135deg,#4a9eff,#7b4fff)">
+              {{ userInitials || '?' }}
+            </div>
+            <div class="shop-item-label">{{ g.label }}</div>
+            <div class="shop-item-status" *ngIf="isOwnedGlow(g.id)">✓ Im Besitz</div>
+            <div class="shop-item-status" *ngIf="!isOwnedGlow(g.id)">
+              <span class="shop-price">🪙 {{ g.price }}</span>
+            </div>
+            <button class="btn shop-buy-btn" *ngIf="!isOwnedGlow(g.id)"
+                    [class.btn-start]="canAfford(g.price)"
+                    [class.btn-reset]="!canAfford(g.price)"
+                    [disabled]="!canAfford(g.price) || purchasing || !currentUser"
+                    (click)="buyGlow(g)">
+              {{ purchasing ? '...' : !currentUser ? 'Einloggen' : canAfford(g.price) ? 'Kaufen' : 'Zu teuer' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- TITEL -->
+        <div class="shop-grid shop-grid-titles" *ngIf="shopTab === 'titles'">
+          <div class="shop-item title-item" *ngFor="let t of shopableTitles"
+               [class.owned]="isOwnedTitle(t.id)"
+               [class.unaffordable]="!isOwnedTitle(t.id) && !canAfford(t.price)">
+            <div class="title-tier-tag title-tier-{{ t.tier }}">{{ t.tier }}</div>
+            <div class="title-preview title-tier-{{ t.tier }}">{{ t.label }}</div>
+            <div class="shop-item-status" *ngIf="isOwnedTitle(t.id)">✓ Im Besitz</div>
+            <div class="shop-item-status" *ngIf="!isOwnedTitle(t.id)">
+              <span class="shop-price">🪙 {{ t.price }}</span>
+            </div>
+            <button class="btn shop-buy-btn" *ngIf="!isOwnedTitle(t.id)"
+                    [class.btn-start]="canAfford(t.price)"
+                    [class.btn-reset]="!canAfford(t.price)"
+                    [disabled]="!canAfford(t.price) || purchasing || !currentUser"
+                    (click)="buyTitle(t)">
+              {{ purchasing ? '...' : !currentUser ? 'Einloggen' : canAfford(t.price) ? 'Kaufen' : 'Zu teuer' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- USERNAME STYLES -->
+        <div class="shop-grid shop-grid-titles" *ngIf="shopTab === 'usernames'">
+          <div class="shop-item uname-item" *ngFor="let s of shopableUsernameStyles"
+               [class.owned]="isOwnedUsernameStyle(s.id)"
+               [class.unaffordable]="!isOwnedUsernameStyle(s.id) && !canAfford(s.price)">
+            <div class="uname-preview" [class]="usernameStyleClass(s.id)">{{ displayName }}</div>
+            <div class="shop-item-label">{{ s.label }}</div>
+            <div class="shop-item-status" *ngIf="isOwnedUsernameStyle(s.id)">✓ Im Besitz</div>
+            <div class="shop-item-status" *ngIf="!isOwnedUsernameStyle(s.id)">
+              <span class="shop-price">🪙 {{ s.price }}</span>
+            </div>
+            <button class="btn shop-buy-btn" *ngIf="!isOwnedUsernameStyle(s.id)"
+                    [class.btn-start]="canAfford(s.price)"
+                    [class.btn-reset]="!canAfford(s.price)"
+                    [disabled]="!canAfford(s.price) || purchasing || !currentUser"
+                    (click)="buyUsernameStyle(s)">
+              {{ purchasing ? '...' : !currentUser ? 'Einloggen' : canAfford(s.price) ? 'Kaufen' : 'Zu teuer' }}
+            </button>
+          </div>
+        </div>
+
+        <p class="shop-hint" *ngIf="!currentUser">💡 Logge dich ein, um Items zu kaufen!</p>
+      </div>
+    </div>
+
+    <div class="clock-bar" *ngIf="!isGamePage">
+      <span class="clock-label">🕐</span>
+      <span class="clock-time">{{ currentTime }}</span>
+    </div>
+  </div>
+</div>
