@@ -306,54 +306,49 @@ export class FirebaseService {
     }
   }
 
-  async deleteLeaderboardEntries(game: string, level: number): Promise<number> {
+  async deleteLeaderboardEntries(
+    game: string,
+    level: number,
+  ): Promise<{ count: number; error?: string }> {
     try {
-      const q = query(
-        collection(db, 'leaderboard'),
-        where('game', '==', game),
-        where('level', '==', level),
-      );
+      // Query nur nach game, Level-Filter in JS um Index-Issues zu vermeiden
+      const q = query(collection(db, 'leaderboard'), where('game', '==', game));
       const snap = await getDocs(q);
-      let count = 0;
-      for (const d of snap.docs) {
+      const toDelete = snap.docs.filter((d) => d.data()['level'] === level);
+      for (const d of toDelete) {
         await deleteDoc(d.ref);
-        count++;
       }
-      return count;
-    } catch (e) {
+      return { count: toDelete.length };
+    } catch (e: any) {
       console.error('deleteLeaderboardEntries error:', e);
-      return 0;
+      return { count: 0, error: e?.message ?? String(e) };
     }
   }
 
-  async deleteLeaderboardByGame(game: string): Promise<number> {
+  async deleteLeaderboardByGame(game: string): Promise<{ count: number; error?: string }> {
     try {
       const q = query(collection(db, 'leaderboard'), where('game', '==', game));
       const snap = await getDocs(q);
-      let count = 0;
       for (const d of snap.docs) {
         await deleteDoc(d.ref);
-        count++;
       }
-      return count;
-    } catch (e) {
+      return { count: snap.docs.length };
+    } catch (e: any) {
       console.error('deleteLeaderboardByGame error:', e);
-      return 0;
+      return { count: 0, error: e?.message ?? String(e) };
     }
   }
 
-  async deleteAllLeaderboard(): Promise<number> {
+  async deleteAllLeaderboard(): Promise<{ count: number; error?: string }> {
     try {
       const snap = await getDocs(collection(db, 'leaderboard'));
-      let count = 0;
       for (const d of snap.docs) {
         await deleteDoc(d.ref);
-        count++;
       }
-      return count;
-    } catch (e) {
+      return { count: snap.docs.length };
+    } catch (e: any) {
       console.error('deleteAllLeaderboard error:', e);
-      return 0;
+      return { count: 0, error: e?.message ?? String(e) };
     }
   }
 

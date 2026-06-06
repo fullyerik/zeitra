@@ -521,36 +521,63 @@ export class TimerComponent implements OnInit, OnDestroy {
   async adminDeleteLeaderboard() {
     if (!this.adminCleanupConfirm) {
       this.adminCleanupConfirm = true;
+      this.cdr.detectChanges();
       return;
     }
-    const count = await this.firebase.deleteLeaderboardEntries(
+    this.adminMsg = '⏳ Wird gelöscht...';
+    this.cdr.detectChanges();
+    const { count, error } = await this.firebase.deleteLeaderboardEntries(
       this.adminCleanupGame,
       Number(this.adminCleanupLevel),
     );
-    this.adminMsg = `🗑 ${count} Einträge gelöscht (${this.adminCleanupGame} L${this.adminCleanupLevel})`;
     this.adminCleanupConfirm = false;
+    if (error) {
+      this.adminMsg = `❌ Fehler: ${error}`;
+    } else {
+      this.adminMsg = count > 0
+        ? `✅ ${count} Einträge gelöscht (${this.adminCleanupGame} L${this.adminCleanupLevel})`
+        : `ℹ️ Keine Einträge gefunden für ${this.adminCleanupGame} L${this.adminCleanupLevel}`;
+    }
     this.flashAdminMsg();
   }
 
   async adminDeleteLeaderboardByGame() {
     if (!this.adminCleanupGameConfirm) {
       this.adminCleanupGameConfirm = true;
+      this.cdr.detectChanges();
       return;
     }
-    const count = await this.firebase.deleteLeaderboardByGame(this.adminCleanupGame);
-    this.adminMsg = `🗑 ${count} Einträge gelöscht (alle Levels von ${this.adminCleanupGame})`;
+    this.adminMsg = '⏳ Wird gelöscht...';
+    this.cdr.detectChanges();
+    const { count, error } = await this.firebase.deleteLeaderboardByGame(this.adminCleanupGame);
     this.adminCleanupGameConfirm = false;
+    if (error) {
+      this.adminMsg = `❌ Fehler: ${error}`;
+    } else {
+      this.adminMsg = count > 0
+        ? `✅ ${count} Einträge gelöscht (alle Levels von ${this.adminCleanupGame})`
+        : `ℹ️ Keine Einträge gefunden für ${this.adminCleanupGame}`;
+    }
     this.flashAdminMsg();
   }
 
   async adminDeleteAllLeaderboard() {
     if (!this.adminCleanupAllConfirm) {
       this.adminCleanupAllConfirm = true;
+      this.cdr.detectChanges();
       return;
     }
-    const count = await this.firebase.deleteAllLeaderboard();
-    this.adminMsg = `🗑 ${count} Einträge gelöscht (ALLE Games + Levels)`;
+    this.adminMsg = '⏳ Wird gelöscht...';
+    this.cdr.detectChanges();
+    const { count, error } = await this.firebase.deleteAllLeaderboard();
     this.adminCleanupAllConfirm = false;
+    if (error) {
+      this.adminMsg = `❌ Fehler: ${error}`;
+    } else {
+      this.adminMsg = count > 0
+        ? `✅ ${count} Einträge gelöscht (ALLE Games + Levels)`
+        : `ℹ️ Leaderboard war bereits leer`;
+    }
     this.flashAdminMsg();
   }
 
