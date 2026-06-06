@@ -326,6 +326,37 @@ export class FirebaseService {
     }
   }
 
+  async deleteLeaderboardByGame(game: string): Promise<number> {
+    try {
+      const q = query(collection(db, 'leaderboard'), where('game', '==', game));
+      const snap = await getDocs(q);
+      let count = 0;
+      for (const d of snap.docs) {
+        await deleteDoc(d.ref);
+        count++;
+      }
+      return count;
+    } catch (e) {
+      console.error('deleteLeaderboardByGame error:', e);
+      return 0;
+    }
+  }
+
+  async deleteAllLeaderboard(): Promise<number> {
+    try {
+      const snap = await getDocs(collection(db, 'leaderboard'));
+      let count = 0;
+      for (const d of snap.docs) {
+        await deleteDoc(d.ref);
+        count++;
+      }
+      return count;
+    } catch (e) {
+      console.error('deleteAllLeaderboard error:', e);
+      return 0;
+    }
+  }
+
   async purchaseItem(
     uid: string,
     itemType: 'border' | 'glow' | 'title' | 'usernameStyle',

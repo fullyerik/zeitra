@@ -172,6 +172,8 @@ export class TimerComponent implements OnInit, OnDestroy {
   adminCleanupGame = 'zeitgefuehl';
   adminCleanupLevel = 1;
   adminCleanupConfirm = false;
+  adminCleanupGameConfirm = false;
+  adminCleanupAllConfirm = false;
 
   // --- Clock ---
   currentTime = '';
@@ -427,6 +429,8 @@ export class TimerComponent implements OnInit, OnDestroy {
     this.adminMsg = '';
     this.adminTargetUser = null;
     this.adminCleanupConfirm = false;
+    this.adminCleanupGameConfirm = false;
+    this.adminCleanupAllConfirm = false;
     this.cdr.detectChanges();
   }
 
@@ -525,6 +529,28 @@ export class TimerComponent implements OnInit, OnDestroy {
     );
     this.adminMsg = `🗑 ${count} Einträge gelöscht (${this.adminCleanupGame} L${this.adminCleanupLevel})`;
     this.adminCleanupConfirm = false;
+    this.flashAdminMsg();
+  }
+
+  async adminDeleteLeaderboardByGame() {
+    if (!this.adminCleanupGameConfirm) {
+      this.adminCleanupGameConfirm = true;
+      return;
+    }
+    const count = await this.firebase.deleteLeaderboardByGame(this.adminCleanupGame);
+    this.adminMsg = `🗑 ${count} Einträge gelöscht (alle Levels von ${this.adminCleanupGame})`;
+    this.adminCleanupGameConfirm = false;
+    this.flashAdminMsg();
+  }
+
+  async adminDeleteAllLeaderboard() {
+    if (!this.adminCleanupAllConfirm) {
+      this.adminCleanupAllConfirm = true;
+      return;
+    }
+    const count = await this.firebase.deleteAllLeaderboard();
+    this.adminMsg = `🗑 ${count} Einträge gelöscht (ALLE Games + Levels)`;
+    this.adminCleanupAllConfirm = false;
     this.flashAdminMsg();
   }
 

@@ -122,9 +122,11 @@
 
       <!-- TAB: CLEANUP -->
       <div class="admin-body" *ngIf="adminTab === 'cleanup'">
+
+        <!-- Game + Level -->
         <div class="admin-section">
-          <label class="field-label">Leaderboard-Einträge löschen</label>
-          <p class="admin-warn">⚠️ Löscht alle Einträge für gewähltes Game + Level. Nicht rückgängig machbar.</p>
+          <label class="field-label">Game + Level löschen</label>
+          <p class="admin-warn">⚠️ Löscht alle Einträge für gewähltes Game + Level.</p>
           <label class="field-label mt8">Game</label>
           <select class="zInput" [(ngModel)]="adminCleanupGame">
             <option *ngFor="let g of leaderboardGames" [value]="g.id">{{ g.label }}</option>
@@ -135,9 +137,42 @@
                   [class.btn-reset]="!adminCleanupConfirm"
                   [class.admin-danger-btn]="adminCleanupConfirm"
                   (click)="adminDeleteLeaderboard()">
-            {{ adminCleanupConfirm ? '⚠️ WIRKLICH LÖSCHEN?' : '🗑 Einträge löschen' }}
+            {{ adminCleanupConfirm ? '⚠️ WIRKLICH LÖSCHEN?' : '🗑 Level löschen' }}
           </button>
           <button *ngIf="adminCleanupConfirm" class="btn ghost w100 mt8" (click)="adminCleanupConfirm = false">
+            Abbrechen
+          </button>
+        </div>
+
+        <!-- Alle Levels eines Games -->
+        <div class="admin-section">
+          <label class="field-label">Alle Levels eines Games löschen</label>
+          <p class="admin-warn">⚠️ Löscht ALLE Levels für das gewählte Game.</p>
+          <select class="zInput" [(ngModel)]="adminCleanupGame">
+            <option *ngFor="let g of leaderboardGames" [value]="g.id">{{ g.label }}</option>
+          </select>
+          <button class="btn w100 mt8"
+                  [class.btn-reset]="!adminCleanupGameConfirm"
+                  [class.admin-danger-btn]="adminCleanupGameConfirm"
+                  (click)="adminDeleteLeaderboardByGame()">
+            {{ adminCleanupGameConfirm ? '⚠️ ALLE LEVELS LÖSCHEN?' : '🗑 Alle Levels löschen' }}
+          </button>
+          <button *ngIf="adminCleanupGameConfirm" class="btn ghost w100 mt8" (click)="adminCleanupGameConfirm = false">
+            Abbrechen
+          </button>
+        </div>
+
+        <!-- Komplett-Reset -->
+        <div class="admin-section">
+          <label class="field-label">Komplettes Leaderboard löschen</label>
+          <p class="admin-warn">⚠️ Löscht ALLE Einträge aus ALLEN Games und ALLEN Levels. Nicht rückgängig!</p>
+          <button class="btn w100 mt8"
+                  [class.btn-reset]="!adminCleanupAllConfirm"
+                  [class.admin-danger-btn]="adminCleanupAllConfirm"
+                  (click)="adminDeleteAllLeaderboard()">
+            {{ adminCleanupAllConfirm ? '🚨 WIRKLICH ALLES LÖSCHEN?' : '💣 Alles löschen' }}
+          </button>
+          <button *ngIf="adminCleanupAllConfirm" class="btn ghost w100 mt8" (click)="adminCleanupAllConfirm = false">
             Abbrechen
           </button>
         </div>
