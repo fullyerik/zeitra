@@ -59,7 +59,7 @@ Spend your coins on:
 - Username search with live profile preview
 
 ### 🔧 Admin Panel
-- Hidden behind `Ctrl+F` and password
+- Hidden behind a secret keybind and password
 - Coin management for your own + other accounts
 - Leaderboard cleanup
 - Email-based admin authentication via Firestore Rules

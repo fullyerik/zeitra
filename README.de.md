@@ -59,7 +59,7 @@ Gib deine Münzen aus für:
 - Username-Suche mit Live-Profil-Vorschau
 
 ### 🔧 Admin-Panel
-- Versteckt hinter `Strg+F` und Passwort
+- Versteckt hinter einem geheimen Keybind und Passwort
 - Münzen-Management für eigenen + andere Accounts
 - Leaderboard-Cleanup
 - Email-basierte Admin-Authentifizierung über Firestore Rules
