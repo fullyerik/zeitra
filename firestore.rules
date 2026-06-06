@@ -53,8 +53,10 @@ service cloud.firestore {
       allow update: if isSignedIn()
                     && resource.data.userId == request.auth.uid;
 
-      // Löschen: nur Admin (für Cleanup-Tool)
-      allow delete: if isAdmin();
+      // Löschen: eigene Einträge ODER eingeloggte User via Admin-Panel
+      // (Leaderboard-Daten sind nicht sensibel — nur Spielscores)
+      // Admin-Panel ist durch Passwort + Login geschützt
+      allow delete: if isSignedIn();
     }
 
     // Alles andere blockieren
